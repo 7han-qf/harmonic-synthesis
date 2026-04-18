@@ -1,0 +1,1413 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>简谐振动合成仿真平台</title>
+    <style>
+      :root{
+        --bg: #000000;
+        --panel: rgba(255,255,255,0.06);
+        --panel2: rgba(255,255,255,0.08);
+        --stroke: rgba(255,255,255,0.14);
+        --text: rgba(255,255,255,0.92);
+        --muted: rgba(255,255,255,0.70);
+        --muted2: rgba(255,255,255,0.55);
+        --grid: #333333;
+        --v1: #FFD700;
+        --v2: #00FFFF;
+        --sum: #FF00FF;
+        --lissOuter: #00ffff;
+        --lissInner: #ffffff;
+        --formula: #CCCCCC;
+        --radius: 14px;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body{
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+          Arial, "Noto Sans", "Liberation Sans", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .app{
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      header{
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .titleRow{
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .title{
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+      .hint{
+        color: var(--muted2);
+        font-size: 12px;
+      }
+
+      .tabs{
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .tabBtn{
+        appearance: none;
+        border: 1px solid rgba(255,255,255,0.10);
+        background: rgba(255,255,255,0.04);
+        color: var(--text);
+        padding: 10px 10px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: transform 0.06s ease, background 0.2s ease, border-color 0.2s ease;
+        font-weight: 650;
+        letter-spacing: 0.2px;
+      }
+      .tabBtn:hover{
+        background: rgba(255,255,255,0.07);
+        border-color: rgba(255,255,255,0.18);
+      }
+      .tabBtn:active{ transform: scale(0.99); }
+      .tabBtn[aria-selected="true"]{
+        background: rgba(255,255,255,0.10);
+        border-color: rgba(255,255,255,0.28);
+        box-shadow: 0 0 0 2px rgba(255,255,255,0.06) inset;
+      }
+
+      .layout{
+        display: grid;
+        grid-template-columns: 360px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+      }
+
+      .panel{
+        border: 1px solid rgba(255,255,255,0.10);
+        background: var(--panel);
+        border-radius: var(--radius);
+        padding: 12px;
+      }
+
+      .panel h2{
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        color: rgba(255,255,255,0.88);
+      }
+      .panel .sub{
+        margin: 0 0 10px 0;
+        font-size: 12px;
+        color: var(--muted2);
+        line-height: 1.35;
+      }
+
+      .controls{
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .row{
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .row label{
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.2;
+      }
+      .value{
+        font-variant-numeric: tabular-nums;
+        font-size: 12px;
+        color: rgba(255,255,255,0.86);
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.10);
+        min-width: 84px;
+        text-align: right;
+      }
+
+      input[type="range"]{
+        width: 100%;
+        margin-top: 6px;
+      }
+      select{
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(0,0,0,0.35);
+        color: var(--text);
+        outline: none;
+      }
+
+      .btnRow{
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding-top: 4px;
+      }
+      .btn{
+        appearance: none;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(255,255,255,0.06);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 9px 12px;
+        cursor: pointer;
+        font-weight: 650;
+        letter-spacing: 0.2px;
+      }
+      .btn:hover{
+        border-color: rgba(255,255,255,0.22);
+        background: rgba(255,255,255,0.08);
+      }
+
+      .canvasWrap{
+        border: 1px solid rgba(255,255,255,0.10);
+        background: #000;
+        border-radius: var(--radius);
+        overflow: hidden;
+        position: relative;
+        min-height: 360px;
+      }
+
+      .canvasWrap .topLegend{
+        position: absolute;
+        top: 10px;
+        left: 12px;
+        right: 12px;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        pointer-events: none;
+        color: rgba(255,255,255,0.78);
+        font-size: 12px;
+        text-shadow: 0 0 8px rgba(0,0,0,0.7);
+      }
+      .legendItems{
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .chip{
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(0,0,0,0.25);
+        padding: 5px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.10);
+      }
+      .swatch{
+        width: 18px;
+        height: 0;
+        border-top: 3px solid #fff;
+        border-radius: 999px;
+      }
+      .swatch.thin{ border-top-width: 2px; opacity: 0.7; }
+      .swatch.thick{ border-top-width: 4px; }
+
+      /* Tab1: three panes inside right column */
+      .stack{
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-height: 360px;
+      }
+      .pane{
+        border: 1px solid rgba(255,255,255,0.10);
+        background: #000;
+        border-radius: var(--radius);
+        overflow: hidden;
+        position: relative;
+      }
+      .pane .label{
+        position: absolute;
+        top: 8px;
+        left: 10px;
+        font-size: 12px;
+        color: var(--formula);
+        pointer-events: none;
+        text-shadow: 0 0 8px rgba(0,0,0,0.7);
+        white-space: nowrap;
+      }
+      canvas{
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .hidden{ display: none !important; }
+
+      @media (max-width: 980px){
+        .layout{
+          grid-template-columns: 1fr;
+        }
+        .tabs{
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <div class="titleRow">
+          <div class="title">简谐振动合成仿真平台</div>
+          <div class="hint">提示：切换标签会自动暂停其它动画；画布支持手机/电脑自适应。</div>
+        </div>
+        <nav class="tabs" role="tablist" aria-label="功能标签">
+          <button class="tabBtn" role="tab" id="tabBtn1" aria-controls="tab1" aria-selected="true">分振动</button>
+          <button class="tabBtn" role="tab" id="tabBtn2" aria-controls="tab2" aria-selected="false">合成振动</button>
+          <button class="tabBtn" role="tab" id="tabBtn3" aria-controls="tab3" aria-selected="false">李萨如·单图</button>
+          <button class="tabBtn" role="tab" id="tabBtn4" aria-controls="tab4" aria-selected="false">李萨如·矩阵</button>
+        </nav>
+      </header>
+
+      <!-- Tab 1 -->
+      <section class="layout" id="tab1" role="tabpanel" aria-labelledby="tabBtn1">
+        <aside class="panel">
+          <h2>标签1｜分振动（三窗格，差频调节）</h2>
+          <p class="sub">
+            实际频率自动计算：f₁ = f_center + f_beat/2，f₂ = f_center - f_beat/2。<br />
+            时间窗口采用动态方案：T_window = 2 / f_beat，保证能看到至少一个完整拍周期。
+          </p>
+          <div class="controls" id="controls1">
+            <div>
+              <div class="row">
+                <label for="t1_fcenter">中心频率 f_center (Hz)</label>
+                <div class="value" id="t1_fcenter_val"></div>
+              </div>
+              <input id="t1_fcenter" type="range" min="0.5" max="2.0" step="0.01" />
+            </div>
+
+            <div>
+              <div class="row">
+                <label for="t1_fbeat">差频（拍频）f_beat (Hz)</label>
+                <div class="value" id="t1_fbeat_val"></div>
+              </div>
+              <input id="t1_fbeat" type="range" min="0.02" max="0.2" step="0.001" />
+            </div>
+
+            <div>
+              <div class="row">
+                <label for="t1_a1">振幅 A₁</label>
+                <div class="value" id="t1_a1_val"></div>
+              </div>
+              <input id="t1_a1" type="range" min="0.5" max="1.5" step="0.01" />
+            </div>
+
+            <div>
+              <div class="row">
+                <label for="t1_a2">振幅 A₂</label>
+                <div class="value" id="t1_a2_val"></div>
+              </div>
+              <input id="t1_a2" type="range" min="0.5" max="1.5" step="0.01" />
+            </div>
+
+            <div>
+              <div class="row">
+                <label for="t1_dphi">相位差 Δφ (rad)</label>
+                <div class="value" id="t1_dphi_val"></div>
+              </div>
+              <input id="t1_dphi" type="range" min="0" max="6.283185307179586" step="0.001" />
+            </div>
+
+            <div class="btnRow">
+              <button class="btn" id="t1_play">暂停</button>
+              <button class="btn" id="t1_reset">重置</button>
+            </div>
+          </div>
+        </aside>
+
+        <div class="stack" id="tab1Stack">
+          <div class="pane" style="flex: 1;">
+            <div class="label">x₁ = A₁·cos(2π·f₁·t)</div>
+            <canvas id="t1_c1"></canvas>
+          </div>
+          <div class="pane" style="flex: 1;">
+            <div class="label">x₂ = A₂·cos(2π·f₂·t + Δφ)</div>
+            <canvas id="t1_c2"></canvas>
+          </div>
+          <div class="pane" style="flex: 2;">
+            <div class="label">x = x₁ + x₂</div>
+            <canvas id="t1_csum"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 2 -->
+      <section class="layout hidden" id="tab2" role="tabpanel" aria-labelledby="tabBtn2">
+        <aside class="panel">
+          <h2>标签2｜合成振动（单画布三实线）</h2>
+          <p class="sub">
+            图例：粗实线=合成波（玫红），细实线=振动1（淡亮黄）、振动2（淡亮蓝）。<br />
+            标签2参数独立，不与标签1同步。
+          </p>
+          <div class="controls" id="controls2">
+            <div>
+              <div class="row">
+                <label for="t2_f1">振动1频率 f₁ (Hz)</label>
+                <div class="value" id="t2_f1_val"></div>
+              </div>
+              <input id="t2_f1" type="range" min="0.5" max="2.0" step="0.01" />
+            </div>
+
+            <div>
+              <div class="row">
+                <label for="t2_f2">振动2频率 f₂ (Hz)</label>
+                <div class="value" id="t2_f2_val"></div>
+              </div>
+              <input id="t2_f2" type="range" min="0.5" max="2.0" step="0.01" />
+            </div>
+
+            <div>
+              <div class="row">
+                <label for="t2_a1">振幅 A₁</label>
+                <div class="value" id="t2_a1_val"></div>
+              </div>
+              <input id="t2_a1" type="range" min="0.5" max="1.5" step="0.01" />
+            </div>
+
+            <div>
+              <div class="row">
+                <label for="t2_a2">振幅 A₂</label>
+                <div class="value" id="t2_a2_val"></div>
+              </div>
+              <input id="t2_a2" type="range" min="0.5" max="1.5" step="0.01" />
+            </div>
+
+            <div>
+              <div class="row">
+                <label for="t2_dphi">相位差 Δφ (rad)</label>
+                <div class="value" id="t2_dphi_val"></div>
+              </div>
+              <input id="t2_dphi" type="range" min="0" max="6.283185307179586" step="0.001" />
+            </div>
+
+            <div class="btnRow">
+              <button class="btn" id="t2_play">暂停</button>
+              <button class="btn" id="t2_reset">重置</button>
+            </div>
+          </div>
+        </aside>
+
+        <div class="canvasWrap">
+          <div class="topLegend">
+            <div class="legendItems">
+              <span class="chip">
+                <span class="swatch thick" style="border-top-color: var(--sum);"></span>
+                合成波 x
+              </span>
+              <span class="chip">
+                <span class="swatch thin" style="border-top-color: var(--v1); opacity:0.65;"></span>
+                振动1 x₁
+              </span>
+              <span class="chip">
+                <span class="swatch thin" style="border-top-color: var(--v2); opacity:0.65;"></span>
+                振动2 x₂
+              </span>
+            </div>
+            <div class="chip" style="color: var(--muted2);">
+              x₁=A₁cos(2πf₁t) ｜ x₂=A₂cos(2πf₂t+Δφ) ｜ x=x₁+x₂
+            </div>
+          </div>
+          <canvas id="t2_canvas"></canvas>
+        </div>
+      </section>
+
+      <!-- Tab 3 -->
+      <section class="layout hidden" id="tab3" role="tabpanel" aria-labelledby="tabBtn3">
+        <aside class="panel">
+          <h2>标签3｜李萨如·单图</h2>
+          <p class="sub">
+            轨迹：外层青蓝 + 内层白色双层发光；拖尾用半透明黑色覆盖实现。<br />
+            Ax、Ay 固定为 1.0（保留但置灰显示）。
+          </p>
+          <div class="controls" id="controls3">
+            <div>
+              <div class="row">
+                <label>振幅 Ax（固定）</label>
+                <div class="value" id="t3_ax_val"></div>
+              </div>
+              <input id="t3_ax" type="range" min="0.5" max="1.5" step="0.01" disabled />
+            </div>
+            <div>
+              <div class="row">
+                <label>振幅 Ay（固定）</label>
+                <div class="value" id="t3_ay_val"></div>
+              </div>
+              <input id="t3_ay" type="range" min="0.5" max="1.5" step="0.01" disabled />
+            </div>
+
+            <div>
+              <div class="row">
+                <label for="t3_ratio">频率比 fx:fy</label>
+                <div class="value" id="t3_ratio_val"></div>
+              </div>
+              <select id="t3_ratio">
+                <option value="1:1">1:1</option>
+                <option value="1:2" selected>1:2</option>
+                <option value="2:1">2:1</option>
+                <option value="2:3">2:3</option>
+                <option value="3:2">3:2</option>
+                <option value="3:4">3:4</option>
+              </select>
+            </div>
+
+            <div>
+              <div class="row">
+                <label for="t3_dphi">相位差 Δφ (rad)</label>
+                <div class="value" id="t3_dphi_val"></div>
+              </div>
+              <input id="t3_dphi" type="range" min="0" max="6.283185307179586" step="0.001" />
+            </div>
+
+            <div>
+              <div class="row">
+                <label for="t3_tail">拖尾长度（覆盖透明度）</label>
+                <div class="value" id="t3_tail_val"></div>
+              </div>
+              <input id="t3_tail" type="range" min="0.05" max="0.3" step="0.005" />
+            </div>
+
+            <div class="btnRow">
+              <button class="btn" id="t3_play">暂停</button>
+              <button class="btn" id="t3_reset">重置</button>
+            </div>
+          </div>
+        </aside>
+
+        <div class="canvasWrap">
+          <div class="topLegend">
+            <div class="legendItems">
+              <span class="chip" style="color: var(--muted);">
+                x=Ax·cos(2π·fx·t) ｜ y=Ay·cos(2π·fy·t+Δφ)
+              </span>
+            </div>
+            <div class="chip" style="color: var(--muted2);">
+              dt≈0.008 / 帧（慢速观察）
+            </div>
+          </div>
+          <canvas id="t3_canvas"></canvas>
+        </div>
+      </section>
+
+      <!-- Tab 4 -->
+      <section class="layout hidden" id="tab4" role="tabpanel" aria-labelledby="tabBtn4">
+        <aside class="panel">
+          <h2>标签4｜李萨如·矩阵（4×4）</h2>
+          <p class="sub">
+            横轴为相位差基值 Δφ_base：0, π/2, π, 3π/2；纵轴为频率比：1:1, 1:2, 2:1, 2:3。<br />
+            拖尾与速度均可调，Ax=Ay=1.0 固定。
+          </p>
+          <div class="controls" id="controls4">
+            <div>
+              <div class="row">
+                <label for="t4_tail">拖尾长度（覆盖透明度）</label>
+                <div class="value" id="t4_tail_val"></div>
+              </div>
+              <input id="t4_tail" type="range" min="0.05" max="0.3" step="0.005" />
+            </div>
+            <div>
+              <div class="row">
+                <label for="t4_speed">动画速度（time 增量/帧）</label>
+                <div class="value" id="t4_speed_val"></div>
+              </div>
+              <input id="t4_speed" type="range" min="0.01" max="0.05" step="0.001" />
+            </div>
+            <div class="btnRow">
+              <button class="btn" id="t4_play">暂停</button>
+              <button class="btn" id="t4_reset">重置</button>
+            </div>
+          </div>
+        </aside>
+
+        <div class="canvasWrap">
+          <canvas id="t4_canvas"></canvas>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      /**
+       * 说明：
+       * - 本项目为 HTML/CSS/JS 单文件，可直接部署到 GitHub Pages。
+       * - 所有动画均使用 requestAnimationFrame。
+       * - 切换标签页时，会停止其它标签的动画循环，避免资源浪费与“多标签同时跑”的逻辑错误。
+       */
+
+      // ---------- 工具函数 ----------
+      const TAU = Math.PI * 2;
+      const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+      const fmt = (v, digits = 3) => Number(v).toFixed(digits);
+      const A_MAX = 1.5;         // 振幅滑块最大值（标签1/2一致）
+      const A_SUM_MAX = 3.0;     // A1+A2 最大值（1.5+1.5）
+
+      /**
+       * 将 CSS 像素尺寸同步到 canvas 的像素缓冲区，保证高分屏清晰。
+       * 返回 { w, h, dpr }，并把 ctx 设为 dpr 缩放后的坐标系（绘图用 CSS 像素即可）。
+       */
+      function resizeCanvasToDisplaySize(canvas, ctx){
+        const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+        const rect = canvas.getBoundingClientRect();
+        const w = Math.max(2, Math.floor(rect.width));
+        const h = Math.max(2, Math.floor(rect.height));
+        const bw = Math.floor(w * dpr);
+        const bh = Math.floor(h * dpr);
+        if (canvas.width !== bw || canvas.height !== bh){
+          canvas.width = bw;
+          canvas.height = bh;
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { w, h, dpr };
+      }
+
+      function clearBlack(ctx, w, h){
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.restore();
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      function drawAxes(ctx, w, h){
+        // 轻量参考轴线（不抢视觉焦点）
+        ctx.save();
+        ctx.strokeStyle = "rgba(255,255,255,0.10)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, h * 0.5);
+        ctx.lineTo(w, h * 0.5);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      /**
+       * 将物理量 value 映射到像素 Y 坐标（留 10% 边距，避免波峰贴边/裁切）。
+       * - maxAmp: 该曲线在当前参数下的最大振幅范围（如 A1、A2、或 A1+A2）。
+       * - canvasHeight: 使用 CSS 像素高度（与 resizeCanvasToDisplaySize 返回的 h 一致）。
+       */
+      function mapY(value, maxAmp, canvasHeight){
+        const safeMax = Math.max(1e-6, Math.abs(maxAmp));
+        const mid = canvasHeight * 0.5;
+        const span = mid * 0.9; // 留出 10% 上下边距
+        return mid - (value / safeMax) * span;
+      }
+
+      // ---------- Tab 管理：确保只跑一个 RAF 循环 ----------
+      const tabBtnIds = ["tabBtn1","tabBtn2","tabBtn3","tabBtn4"];
+      const tabIds = ["tab1","tab2","tab3","tab4"];
+
+      let activeTabIndex = 0;
+
+      function setActiveTab(idx){
+        idx = clamp(idx, 0, 3);
+        if (idx === activeTabIndex) return;
+        // 停止当前与其它标签动画
+        stopAllAnimations();
+        // 切换可见性
+        for (let i = 0; i < 4; i++){
+          const btn = document.getElementById(tabBtnIds[i]);
+          const tab = document.getElementById(tabIds[i]);
+          const isActive = i === idx;
+          btn.setAttribute("aria-selected", String(isActive));
+          tab.classList.toggle("hidden", !isActive);
+        }
+        activeTabIndex = idx;
+        // 启动新标签动画
+        startActiveAnimation();
+      }
+
+      tabBtnIds.forEach((id, i) => {
+        document.getElementById(id).addEventListener("click", () => setActiveTab(i));
+      });
+
+      // ---------- Tab1：分振动（三窗格）----------
+      const tab1 = {
+        running: true,
+        raf: 0,
+        // 参数（差频方式）
+        fCenter: 1.0,
+        fBeat: 0.05,
+        A1: 1.0,
+        A2: 1.0,
+        dPhi: 0.0,
+        // 显示滚动：把“当前时刻”放在窗口右端，便于观察拍现象
+        time: 0,
+        lastTs: 0,
+        // 视觉
+        line1: 2.0,
+        line2: 2.0,
+        lineSum: 3.6,
+      };
+
+      const t1 = {
+        c1: document.getElementById("t1_c1"),
+        c2: document.getElementById("t1_c2"),
+        cs: document.getElementById("t1_csum"),
+      };
+      const t1ctx = {
+        c1: t1.c1.getContext("2d"),
+        c2: t1.c2.getContext("2d"),
+        cs: t1.cs.getContext("2d"),
+      };
+
+      function tab1Defaults(){
+        tab1.fCenter = 1.0;
+        tab1.fBeat = 0.05;
+        tab1.A1 = 1.0;
+        tab1.A2 = 1.0;
+        tab1.dPhi = 0.0;
+        tab1.time = 0;
+        tab1.lastTs = 0;
+      }
+
+      // 绑定控件（Tab1）
+      const el = (id) => document.getElementById(id);
+      const bindRange = (inputId, valueId, getter, setter, digits = 3) => {
+        const input = el(inputId);
+        const val = el(valueId);
+        const update = () => {
+          const v = Number(input.value);
+          setter(v);
+          val.textContent = fmt(getter(), digits);
+        };
+        input.addEventListener("input", update);
+        // 初始化显示
+        input.value = String(getter());
+        val.textContent = fmt(getter(), digits);
+      };
+
+      function initTab1Controls(){
+        bindRange("t1_fcenter","t1_fcenter_val", () => tab1.fCenter, (v) => tab1.fCenter = v, 2);
+        bindRange("t1_fbeat","t1_fbeat_val", () => tab1.fBeat, (v) => tab1.fBeat = v, 3);
+        bindRange("t1_a1","t1_a1_val", () => tab1.A1, (v) => tab1.A1 = v, 2);
+        bindRange("t1_a2","t1_a2_val", () => tab1.A2, (v) => tab1.A2 = v, 2);
+        bindRange("t1_dphi","t1_dphi_val", () => tab1.dPhi, (v) => tab1.dPhi = v, 3);
+
+        el("t1_play").addEventListener("click", () => {
+          tab1.running = !tab1.running;
+          el("t1_play").textContent = tab1.running ? "暂停" : "播放";
+          // 若用户在 Tab1 内点击播放/暂停，确保 RAF 正确状态
+          if (activeTabIndex === 0){
+            if (tab1.running) startTab1();
+            else stopTab1();
+          }
+        });
+        el("t1_reset").addEventListener("click", () => {
+          tab1Defaults();
+          // 同步滑块显示
+          el("t1_fcenter").value = String(tab1.fCenter);
+          el("t1_fbeat").value = String(tab1.fBeat);
+          el("t1_a1").value = String(tab1.A1);
+          el("t1_a2").value = String(tab1.A2);
+          el("t1_dphi").value = String(tab1.dPhi);
+          el("t1_fcenter_val").textContent = fmt(tab1.fCenter, 2);
+          el("t1_fbeat_val").textContent = fmt(tab1.fBeat, 3);
+          el("t1_a1_val").textContent = fmt(tab1.A1, 2);
+          el("t1_a2_val").textContent = fmt(tab1.A2, 2);
+          el("t1_dphi_val").textContent = fmt(tab1.dPhi, 3);
+          // 立即重绘一帧，避免“重置后不更新”
+          drawTab1Frame(0);
+        });
+      }
+
+      function tab1TimeWindow(){
+        // 动态时间窗口：T = 2 / f_beat
+        const fb = Math.max(0.0001, tab1.fBeat);
+        return 2.0 / fb;
+      }
+
+      function drawWaveOn(ctx, w, h, stroke, lineWidth, shadowBlur, shadowColor, maxAmp, sampler){
+        clearBlack(ctx, w, h);
+        drawAxes(ctx, w, h);
+
+        ctx.save();
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = lineWidth;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.shadowBlur = shadowBlur;
+        ctx.shadowColor = shadowColor;
+
+        ctx.beginPath();
+        const N = Math.max(300, Math.floor(w * 1.2)); // 横向足够细，确保流畅
+        for (let i = 0; i <= N; i++){
+          const x = (i / N) * w;
+          const value = sampler(i / N);
+          const y = mapY(value, maxAmp, h);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawTab1Frame(dt){
+        // 计算实际频率
+        const f1 = tab1.fCenter + tab1.fBeat / 2;
+        const f2 = tab1.fCenter - tab1.fBeat / 2;
+        const A1 = tab1.A1;
+        const A2 = tab1.A2;
+        const dphi = tab1.dPhi;
+
+        tab1.time += dt;
+        const T = tab1TimeWindow();
+        const tEnd = tab1.time;
+        const tStart = tEnd - T;
+
+        // 采样函数：给定 u∈[0,1] 对应时间 t = lerp(tStart,tEnd)
+        const sample1 = (u) => A1 * Math.cos(TAU * f1 * (tStart + u * T));
+        const sample2 = (u) => A2 * Math.cos(TAU * f2 * (tStart + u * T) + dphi);
+        const samples = (u) => sample1(u) + sample2(u);
+
+        // 三窗格绘制：背景黑、线条白、发光；合成波更粗更亮
+        const sWhite = "#FFFFFF";
+        const glow = "rgba(255,255,255,0.85)";
+        const draw1 = () => {
+          const ctx = t1ctx.c1;
+          const { w, h } = resizeCanvasToDisplaySize(t1.c1, ctx);
+          // 说明：为了让“拖动 A1 能看到振幅变化”，映射基准需固定为 A_MAX，
+          // 否则 value 与 maxAmp 同时随 A1 变化会相互抵消，视觉上变成恒定满幅。
+          drawWaveOn(ctx, w, h, sWhite, tab1.line1, 12, glow, A_MAX, (u) => sample1(u));
+        };
+        const draw2 = () => {
+          const ctx = t1ctx.c2;
+          const { w, h } = resizeCanvasToDisplaySize(t1.c2, ctx);
+          drawWaveOn(ctx, w, h, sWhite, tab1.line2, 12, glow, A_MAX, (u) => sample2(u));
+        };
+        const drawS = () => {
+          const ctx = t1ctx.cs;
+          const { w, h } = resizeCanvasToDisplaySize(t1.cs, ctx);
+          drawWaveOn(
+            ctx,
+            w,
+            h,
+            sWhite,
+            tab1.lineSum,
+            16,
+            "rgba(255,255,255,0.95)",
+            A_SUM_MAX,
+            (u) => samples(u)
+          );
+        };
+
+        draw1(); draw2(); drawS();
+      }
+
+      function tab1Loop(ts){
+        if (activeTabIndex !== 0) return;
+        if (!tab1.running) return;
+        if (!tab1.lastTs) tab1.lastTs = ts;
+        const dt = (ts - tab1.lastTs) / 1000;
+        tab1.lastTs = ts;
+        // 适度限制最大 dt，避免切后台回来跳太大
+        drawTab1Frame(Math.min(dt, 0.05));
+        tab1.raf = requestAnimationFrame(tab1Loop);
+      }
+      function startTab1(){
+        if (!tab1.running) return;
+        if (tab1.raf) return;
+        tab1.lastTs = 0;
+        tab1.raf = requestAnimationFrame(tab1Loop);
+      }
+      function stopTab1(){
+        if (tab1.raf){
+          cancelAnimationFrame(tab1.raf);
+          tab1.raf = 0;
+        }
+      }
+
+      // ---------- Tab2：合成振动（单画布三实线）----------
+      const tab2 = {
+        running: true,
+        raf: 0,
+        lastTs: 0,
+        time: 0,
+        f1: 1.0,
+        f2: 1.1,
+        A1: 1.0,
+        A2: 1.0,
+        dPhi: 0.0,
+        timeWindow: 10.0, // 固定窗口：视觉更稳定（标签2无拍周期强约束）
+      };
+      const t2Canvas = el("t2_canvas");
+      const t2ctx = t2Canvas.getContext("2d");
+
+      function tab2Defaults(){
+        tab2.running = true;
+        tab2.lastTs = 0;
+        tab2.time = 0;
+        tab2.f1 = 1.0;
+        tab2.f2 = 1.1;
+        tab2.A1 = 1.0;
+        tab2.A2 = 1.0;
+        tab2.dPhi = 0.0;
+      }
+
+      function initTab2Controls(){
+        bindRange("t2_f1","t2_f1_val", () => tab2.f1, (v) => tab2.f1 = v, 2);
+        bindRange("t2_f2","t2_f2_val", () => tab2.f2, (v) => tab2.f2 = v, 2);
+        bindRange("t2_a1","t2_a1_val", () => tab2.A1, (v) => tab2.A1 = v, 2);
+        bindRange("t2_a2","t2_a2_val", () => tab2.A2, (v) => tab2.A2 = v, 2);
+        bindRange("t2_dphi","t2_dphi_val", () => tab2.dPhi, (v) => tab2.dPhi = v, 3);
+
+        el("t2_play").addEventListener("click", () => {
+          tab2.running = !tab2.running;
+          el("t2_play").textContent = tab2.running ? "暂停" : "播放";
+          if (activeTabIndex === 1){
+            if (tab2.running) startTab2();
+            else stopTab2();
+          }
+        });
+        el("t2_reset").addEventListener("click", () => {
+          tab2Defaults();
+          el("t2_f1").value = String(tab2.f1);
+          el("t2_f2").value = String(tab2.f2);
+          el("t2_a1").value = String(tab2.A1);
+          el("t2_a2").value = String(tab2.A2);
+          el("t2_dphi").value = String(tab2.dPhi);
+          el("t2_f1_val").textContent = fmt(tab2.f1, 2);
+          el("t2_f2_val").textContent = fmt(tab2.f2, 2);
+          el("t2_a1_val").textContent = fmt(tab2.A1, 2);
+          el("t2_a2_val").textContent = fmt(tab2.A2, 2);
+          el("t2_dphi_val").textContent = fmt(tab2.dPhi, 3);
+          drawTab2Frame(0);
+        });
+      }
+
+      function drawTab2Frame(dt){
+        tab2.time += dt;
+        const T = tab2.timeWindow;
+        const tEnd = tab2.time;
+        const tStart = tEnd - T;
+
+        const { w, h } = resizeCanvasToDisplaySize(t2Canvas, t2ctx);
+        clearBlack(t2ctx, w, h);
+        drawAxes(t2ctx, w, h);
+
+        const N = Math.max(520, Math.floor(w * 1.4));
+
+        const x1 = (t) => tab2.A1 * Math.cos(TAU * tab2.f1 * t);
+        const x2 = (t) => tab2.A2 * Math.cos(TAU * tab2.f2 * t + tab2.dPhi);
+
+        // 先画淡色参考背景（两个分振动）
+        function strokeWave(color, alpha, lw, glowBlur){
+          t2ctx.save();
+          t2ctx.strokeStyle = color;
+          t2ctx.globalAlpha = alpha;
+          t2ctx.lineWidth = lw;
+          t2ctx.lineJoin = "round";
+          t2ctx.lineCap = "round";
+          t2ctx.shadowBlur = glowBlur;
+          t2ctx.shadowColor = color;
+          t2ctx.beginPath();
+          for (let i = 0; i <= N; i++){
+            const u = i / N;
+            const x = u * w;
+            const t = tStart + u * T;
+            const y = mapY(x1(t), A_MAX, h);
+            if (i === 0) t2ctx.moveTo(x, y);
+            else t2ctx.lineTo(x, y);
+          }
+          t2ctx.stroke();
+          t2ctx.restore();
+        }
+        function strokeWave2(color, alpha, lw, glowBlur){
+          t2ctx.save();
+          t2ctx.strokeStyle = color;
+          t2ctx.globalAlpha = alpha;
+          t2ctx.lineWidth = lw;
+          t2ctx.lineJoin = "round";
+          t2ctx.lineCap = "round";
+          t2ctx.shadowBlur = glowBlur;
+          t2ctx.shadowColor = color;
+          t2ctx.beginPath();
+          for (let i = 0; i <= N; i++){
+            const u = i / N;
+            const x = u * w;
+            const t = tStart + u * T;
+            const y = mapY(x2(t), A_MAX, h);
+            if (i === 0) t2ctx.moveTo(x, y);
+            else t2ctx.lineTo(x, y);
+          }
+          t2ctx.stroke();
+          t2ctx.restore();
+        }
+        strokeWave(getComputedStyle(document.documentElement).getPropertyValue("--v1").trim(), 0.5, 1.5, 8);
+        strokeWave2(getComputedStyle(document.documentElement).getPropertyValue("--v2").trim(), 0.5, 1.5, 8);
+
+        // 再画合成波：更粗、更亮、发光更强
+        t2ctx.save();
+        const sumColor = getComputedStyle(document.documentElement).getPropertyValue("--sum").trim();
+        t2ctx.strokeStyle = sumColor;
+        t2ctx.globalAlpha = 1.0;
+        t2ctx.lineWidth = 3.8;
+        t2ctx.lineJoin = "round";
+        t2ctx.lineCap = "round";
+        t2ctx.shadowBlur = 16;
+        t2ctx.shadowColor = sumColor;
+        t2ctx.beginPath();
+        for (let i = 0; i <= N; i++){
+          const u = i / N;
+          const x = u * w;
+          const t = tStart + u * T;
+          const y = mapY(x1(t) + x2(t), A_SUM_MAX, h);
+          if (i === 0) t2ctx.moveTo(x, y);
+          else t2ctx.lineTo(x, y);
+        }
+        t2ctx.stroke();
+        t2ctx.restore();
+      }
+
+      function tab2Loop(ts){
+        if (activeTabIndex !== 1) return;
+        if (!tab2.running) return;
+        if (!tab2.lastTs) tab2.lastTs = ts;
+        const dt = (ts - tab2.lastTs) / 1000;
+        tab2.lastTs = ts;
+        drawTab2Frame(Math.min(dt, 0.05));
+        tab2.raf = requestAnimationFrame(tab2Loop);
+      }
+      function startTab2(){
+        if (!tab2.running) return;
+        if (tab2.raf) return;
+        tab2.lastTs = 0;
+        tab2.raf = requestAnimationFrame(tab2Loop);
+      }
+      function stopTab2(){
+        if (tab2.raf){
+          cancelAnimationFrame(tab2.raf);
+          tab2.raf = 0;
+        }
+      }
+
+      // ---------- Tab3：李萨如·单图 ----------
+      const tab3 = {
+        running: true,
+        raf: 0,
+        lastTs: 0,
+        t: 0,           // 标签3独立的全局时间
+        dt: 0.008,      // 每帧时间增量（更慢）
+        Ax: 1.0,
+        Ay: 1.0,
+        fx: 1,
+        fy: 2,
+        dPhi: 0.0,
+        tail: 0.15,     // 拖尾（覆盖 alpha），值越大越“快擦除”
+        angleStep: 0.006, // 采样步长更小 => 更平滑
+      };
+      const t3Canvas = el("t3_canvas");
+      const t3ctx = t3Canvas.getContext("2d");
+
+      function tab3Defaults(){
+        tab3.running = true;
+        tab3.lastTs = 0;
+        tab3.t = 0;
+        tab3.Ax = 1.0;
+        tab3.Ay = 1.0;
+        tab3.fx = 1;
+        tab3.fy = 2;
+        tab3.dPhi = 0.0;
+        tab3.tail = 0.15;
+      }
+
+      function initTab3Controls(){
+        // Ax、Ay 固定，但仍显示数值
+        el("t3_ax").value = String(tab3.Ax);
+        el("t3_ay").value = String(tab3.Ay);
+        el("t3_ax_val").textContent = fmt(tab3.Ax, 2);
+        el("t3_ay_val").textContent = fmt(tab3.Ay, 2);
+
+        const ratioSel = el("t3_ratio");
+        const ratioVal = el("t3_ratio_val");
+        const updateRatio = () => {
+          ratioVal.textContent = ratioSel.value;
+          const [a, b] = ratioSel.value.split(":").map(Number);
+          tab3.fx = a; tab3.fy = b;
+        };
+        ratioSel.addEventListener("change", updateRatio);
+        updateRatio();
+
+        bindRange("t3_dphi","t3_dphi_val", () => tab3.dPhi, (v) => tab3.dPhi = v, 3);
+        bindRange("t3_tail","t3_tail_val", () => tab3.tail, (v) => tab3.tail = v, 3);
+
+        el("t3_play").addEventListener("click", () => {
+          tab3.running = !tab3.running;
+          el("t3_play").textContent = tab3.running ? "暂停" : "播放";
+          if (activeTabIndex === 2){
+            if (tab3.running) startTab3();
+            else stopTab3();
+          }
+        });
+        el("t3_reset").addEventListener("click", () => {
+          tab3Defaults();
+          ratioSel.value = "1:2";
+          updateRatio();
+          el("t3_dphi").value = String(tab3.dPhi);
+          el("t3_tail").value = String(tab3.tail);
+          el("t3_dphi_val").textContent = fmt(tab3.dPhi, 3);
+          el("t3_tail_val").textContent = fmt(tab3.tail, 3);
+          // 清屏
+          const { w, h } = resizeCanvasToDisplaySize(t3Canvas, t3ctx);
+          clearBlack(t3ctx, w, h);
+        });
+      }
+
+      function fadeTab3(w, h){
+        // 拖尾：用半透明黑色矩形覆盖（rgba(0,0,0,alpha)）
+        // 这里 tab3.tail 表示覆盖 alpha，越大越快消失；范围 0.05~0.3
+        t3ctx.save();
+        t3ctx.fillStyle = `rgba(0,0,0,${clamp(tab3.tail, 0.02, 0.45)})`;
+        t3ctx.fillRect(0, 0, w, h);
+        t3ctx.restore();
+      }
+
+      function drawLissajousCurve(ctx, w, h, fx, fy, dPhi){
+        // 通过 angle 采样绘制连续曲线（提高平滑度）
+        const cx = w * 0.5;
+        const cy = h * 0.5;
+        const r = Math.min(w, h) * 0.40;
+        const Ax = tab3.Ax;
+        const Ay = tab3.Ay;
+        const step = tab3.angleStep; // 更小步长 => 更平滑
+
+        // 外层：青蓝发光
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--lissOuter").trim();
+        ctx.lineWidth = 4;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = ctx.strokeStyle;
+        ctx.beginPath();
+        for (let a = 0; a <= TAU + step; a += step){
+          const x = (Ax * Math.cos(fx * a)) * r;
+          const y = (Ay * Math.cos(fy * a + dPhi)) * r;
+          if (a === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.restore();
+
+        // 内层：白色细线（增加“锐利感”）
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--lissInner").trim();
+        ctx.lineWidth = 1.5;
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        for (let a = 0; a <= TAU + step; a += step){
+          const x = (Ax * Math.cos(fx * a)) * r;
+          const y = (Ay * Math.cos(fy * a + dPhi)) * r;
+          if (a === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawTab3Frame(){
+        const { w, h } = resizeCanvasToDisplaySize(t3Canvas, t3ctx);
+        // 首帧清屏
+        if (tab3.t === 0){
+          clearBlack(t3ctx, w, h);
+        }
+        // 拖尾覆盖
+        fadeTab3(w, h);
+        // 每帧推进相位：dPhi + 2πfx t 等价于把时间并入相位
+        // 这里采用 “t 自增”，并把 t 叠加到相位上，让轨迹逐步“描出来”
+        tab3.t += tab3.dt;
+        const phase = tab3.dPhi + tab3.t;
+        drawLissajousCurve(t3ctx, w, h, tab3.fx, tab3.fy, phase);
+      }
+
+      function tab3Loop(){
+        if (activeTabIndex !== 2) return;
+        if (!tab3.running) return;
+        drawTab3Frame();
+        tab3.raf = requestAnimationFrame(tab3Loop);
+      }
+      function startTab3(){
+        if (!tab3.running) return;
+        if (tab3.raf) return;
+        tab3.raf = requestAnimationFrame(tab3Loop);
+      }
+      function stopTab3(){
+        if (tab3.raf){
+          cancelAnimationFrame(tab3.raf);
+          tab3.raf = 0;
+        }
+      }
+
+      // ---------- Tab4：李萨如·矩阵（4×4）----------
+      const tab4 = {
+        running: true,
+        raf: 0,
+        time: 0,
+        tail: 0.10,
+        speed: 0.02,
+        angleStep: 0.012, // 适中：16 格性能更稳
+      };
+      const t4Canvas = el("t4_canvas");
+      const t4ctx = t4Canvas.getContext("2d");
+
+      const tab4Phases = [0, Math.PI/2, Math.PI, Math.PI*3/2];
+      const tab4Ratios = [
+        [1,1],
+        [1,2],
+        [2,1],
+        [2,3],
+      ];
+
+      function tab4Defaults(){
+        tab4.running = true;
+        tab4.time = 0;
+        tab4.tail = 0.10;
+        tab4.speed = 0.02;
+      }
+
+      function initTab4Controls(){
+        bindRange("t4_tail","t4_tail_val", () => tab4.tail, (v) => tab4.tail = v, 3);
+        bindRange("t4_speed","t4_speed_val", () => tab4.speed, (v) => tab4.speed = v, 3);
+        el("t4_play").addEventListener("click", () => {
+          tab4.running = !tab4.running;
+          el("t4_play").textContent = tab4.running ? "暂停" : "播放";
+          if (activeTabIndex === 3){
+            if (tab4.running) startTab4();
+            else stopTab4();
+          }
+        });
+        el("t4_reset").addEventListener("click", () => {
+          tab4Defaults();
+          el("t4_tail").value = String(tab4.tail);
+          el("t4_speed").value = String(tab4.speed);
+          el("t4_tail_val").textContent = fmt(tab4.tail, 3);
+          el("t4_speed_val").textContent = fmt(tab4.speed, 3);
+          // 清屏
+          const { w, h } = resizeCanvasToDisplaySize(t4Canvas, t4ctx);
+          clearBlack(t4ctx, w, h);
+        });
+      }
+
+      function fadeTab4(w, h){
+        t4ctx.save();
+        t4ctx.fillStyle = `rgba(0,0,0,${clamp(tab4.tail, 0.02, 0.45)})`;
+        t4ctx.fillRect(0, 0, w, h);
+        t4ctx.restore();
+      }
+
+      function drawTab4Frame(){
+        const { w, h } = resizeCanvasToDisplaySize(t4Canvas, t4ctx);
+        // 首帧清屏
+        if (tab4.time === 0){
+          clearBlack(t4ctx, w, h);
+        }
+        fadeTab4(w, h);
+
+        const cols = 4, rows = 4;
+        const padL = 62, padT = 40, padR = 16, padB = 16;
+        const gridW = w - padL - padR;
+        const gridH = h - padT - padB;
+        const cellW = gridW / cols;
+        const cellH = gridH / rows;
+
+        // 网格线与标注
+        t4ctx.save();
+        t4ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--grid").trim();
+        t4ctx.lineWidth = 1;
+        t4ctx.beginPath();
+        for (let c = 0; c <= cols; c++){
+          const x = padL + c * cellW;
+          t4ctx.moveTo(x, padT);
+          t4ctx.lineTo(x, padT + gridH);
+        }
+        for (let r = 0; r <= rows; r++){
+          const y = padT + r * cellH;
+          t4ctx.moveTo(padL, y);
+          t4ctx.lineTo(padL + gridW, y);
+        }
+        t4ctx.stroke();
+
+        // 顶部相位标注
+        t4ctx.fillStyle = "rgba(255,255,255,0.72)";
+        t4ctx.font = "12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial";
+        t4ctx.textAlign = "center";
+        t4ctx.textBaseline = "middle";
+        const phaseLabels = ["0", "π/2", "π", "3π/2"];
+        for (let c = 0; c < cols; c++){
+          const x = padL + (c + 0.5) * cellW;
+          t4ctx.fillText(`Δφ_base=${phaseLabels[c]}`, x, padT * 0.55);
+        }
+        // 左侧频率比标注
+        t4ctx.textAlign = "left";
+        for (let r = 0; r < rows; r++){
+          const y = padT + (r + 0.5) * cellH;
+          const [fx, fy] = tab4Ratios[r];
+          t4ctx.fillText(`${fx}:${fy}`, 10, y);
+        }
+        t4ctx.restore();
+
+        // 画每个格子内的李萨如曲线（外层青蓝+内层白）
+        for (let r = 0; r < rows; r++){
+          for (let c = 0; c < cols; c++){
+            const [fx, fy] = tab4Ratios[r];
+            const base = tab4Phases[c];
+            const phase = base + tab4.time;
+
+            const x0 = padL + c * cellW;
+            const y0 = padT + r * cellH;
+            const cx = x0 + cellW * 0.5;
+            const cy = y0 + cellH * 0.5;
+            const rr = Math.min(cellW, cellH) * 0.38;
+
+            // 外层
+            t4ctx.save();
+            t4ctx.translate(cx, cy);
+            t4ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--lissOuter").trim();
+            t4ctx.lineWidth = 3.2;
+            t4ctx.lineJoin = "round";
+            t4ctx.lineCap = "round";
+            t4ctx.shadowBlur = 12;
+            t4ctx.shadowColor = t4ctx.strokeStyle;
+            t4ctx.beginPath();
+            const step = tab4.angleStep;
+            for (let a = 0; a <= TAU + step; a += step){
+              // 根据需求：x = cos(fx·angle), y = cos(fy·angle + 实际相位)
+              const x = Math.cos(fx * a) * rr;
+              const y = Math.cos(fy * a + phase) * rr;
+              if (a === 0) t4ctx.moveTo(x, y);
+              else t4ctx.lineTo(x, y);
+            }
+            t4ctx.stroke();
+            t4ctx.restore();
+
+            // 内层
+            t4ctx.save();
+            t4ctx.translate(cx, cy);
+            t4ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--lissInner").trim();
+            t4ctx.lineWidth = 1.2;
+            t4ctx.shadowBlur = 0;
+            t4ctx.beginPath();
+            const step2 = tab4.angleStep;
+            for (let a = 0; a <= TAU + step2; a += step2){
+              const x = Math.cos(fx * a) * rr;
+              const y = Math.cos(fy * a + phase) * rr;
+              if (a === 0) t4ctx.moveTo(x, y);
+              else t4ctx.lineTo(x, y);
+            }
+            t4ctx.stroke();
+            t4ctx.restore();
+          }
+        }
+
+        // 推进时间
+        tab4.time += tab4.speed;
+      }
+
+      function tab4Loop(){
+        if (activeTabIndex !== 3) return;
+        if (!tab4.running) return;
+        drawTab4Frame();
+        tab4.raf = requestAnimationFrame(tab4Loop);
+      }
+      function startTab4(){
+        if (!tab4.running) return;
+        if (tab4.raf) return;
+        tab4.raf = requestAnimationFrame(tab4Loop);
+      }
+      function stopTab4(){
+        if (tab4.raf){
+          cancelAnimationFrame(tab4.raf);
+          tab4.raf = 0;
+        }
+      }
+
+      // ---------- 全局：停止/启动 ----------
+      function stopAllAnimations(){
+        stopTab1();
+        stopTab2();
+        stopTab3();
+        stopTab4();
+      }
+      function startActiveAnimation(){
+        if (activeTabIndex === 0) { if (tab1.running) startTab1(); else drawTab1Frame(0); }
+        if (activeTabIndex === 1) { if (tab2.running) startTab2(); else drawTab2Frame(0); }
+        if (activeTabIndex === 2) { if (tab3.running) startTab3(); }
+        if (activeTabIndex === 3) { if (tab4.running) startTab4(); }
+      }
+
+      // ---------- 响应式：窗口变化时重绘 ----------
+      let resizeTimer = 0;
+      window.addEventListener("resize", () => {
+        // 防抖：避免拖拽窗口时高频重算
+        if (resizeTimer) cancelAnimationFrame(resizeTimer);
+        resizeTimer = requestAnimationFrame(() => {
+          // 立即按当前标签重绘一帧
+          if (activeTabIndex === 0) drawTab1Frame(0);
+          if (activeTabIndex === 1) drawTab2Frame(0);
+          if (activeTabIndex === 2) {
+            const { w, h } = resizeCanvasToDisplaySize(t3Canvas, t3ctx);
+            clearBlack(t3ctx, w, h);
+          }
+          if (activeTabIndex === 3) {
+            const { w, h } = resizeCanvasToDisplaySize(t4Canvas, t4ctx);
+            clearBlack(t4ctx, w, h);
+          }
+        });
+      });
+
+      // ---------- 初始化 ----------
+      function init(){
+        tab1Defaults();
+        tab2Defaults();
+        tab3Defaults();
+        tab4Defaults();
+
+        initTab1Controls();
+        initTab2Controls();
+        initTab3Controls();
+        initTab4Controls();
+
+        // 初始化按钮文本
+        el("t1_play").textContent = tab1.running ? "暂停" : "播放";
+        el("t2_play").textContent = tab2.running ? "暂停" : "播放";
+        el("t3_play").textContent = tab3.running ? "暂停" : "播放";
+        el("t4_play").textContent = tab4.running ? "暂停" : "播放";
+
+        // 初始显示 Tab1
+        activeTabIndex = 0;
+        // 先画一帧，保证首屏不空
+        drawTab1Frame(0);
+        startActiveAnimation();
+      }
+
+      init();
+    </script>
+  </body>
+</html>
